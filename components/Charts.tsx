@@ -10,7 +10,11 @@ import {
   ReferenceLine,
   BarChart,
   Bar,
-  Legend
+  Legend,
+  LineChart,
+  Line,
+  Area,
+  ComposedChart
 } from 'recharts';
 import { Decision } from '../types';
 
@@ -91,6 +95,80 @@ export const OutcomeChart: React.FC<Props> = ({ decisions }) => {
           <Tooltip cursor={{fill: 'transparent'}} />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={30} />
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const TimelineChart: React.FC<Props> = ({ decisions }) => {
+  if (decisions.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-300 rounded-lg">
+        No decisions logged yet.
+      </div>
+    );
+  }
+
+  // Sort by creation date and create timeline data
+  const sorted = [...decisions].sort((a, b) => a.createdAt - b.createdAt);
+  
+  // Calculate cumulative statistics
+  const timelineData = sorted.map((decision, idx) => {
+    const completedSoFar = sorted.slice(0, idx + 1).filter(d => d.status === 'completed');
+    const successCount = completedSoFar.filter(d => d.outcome === 'success').length;
+    const accuracy = completedSoFar.length > 0 ? (successCount / completedSoFar.length) * 100 : 0;
+    
+    return {
+      date: new Date(decision.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      timestamp: decision.createdAt,
+      accuracy: accuracy.toFixed(1),
+      total: idx + 1,
+      completed: completedSoFar.length,
+      confidence: decision.confidence
+    };
+  });
+
+  return (
+    <div className="h-80 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={timelineData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis 
+            dataKey="date" 
+            tick={{ fontSize: 11 }}
+            label={{ value: 'Timeline', position: 'insideBottom', offset: -10 }}
+          />
+          <YAxis 
+            yAxisId="left"
+            label={{ value: 'Prediction Accuracy %', angle: -90, position: 'insideLeft' }}
+          />
+          <YAxis 
+            yAxisId="right" 
+            orientation="right"
+            label={{ value: 'Total Decisions', angle: 90, position: 'insideRight' }}
+          />
+          <Tooltip 
+            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+          />
+          <Legend />
+          <Line 
+            yAxisId="left"
+            type="monotone" 
+            dataKey="accuracy" 
+            stroke="#2563eb" 
+            strokeWidth={2}
+            name="Accuracy %" 
+            dot={{ r: 4 }}
+          />
+          <Bar 
+            yAxisId="right"
+            dataKey="completed" 
+            fill="#94a3b8" 
+            opacity={0.3}
+            name="Completed"
+            barSize={20}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
