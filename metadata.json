@@ -1,0 +1,5 @@
+{
+  "name": "Decision Receipts",
+  "description": "A tool to improve judgment by capturing decisions, predictions, and confidence levels in real-time, then analyzing outcomes to detect bias.",
+  "requestFramePermissions": []
+}
