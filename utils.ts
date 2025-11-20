@@ -48,6 +48,53 @@ export const generateInsights = (decisions: Decision[]): Insight[] => {
       });
   }
 
+  // 3. Confidence Distribution Analysis
+  const avgConfidence = completed.reduce((sum, d) => sum + d.confidence, 0) / completed.length;
+  if (avgConfidence > 75) {
+    insights.push({
+      type: 'warning',
+      title: 'Systematic Overconfidence',
+      message: `Your average confidence is ${avgConfidence.toFixed(0)}%. Most people are systematically overconfident. Try reducing confidence by 10-15%.`
+    });
+  } else if (avgConfidence < 40) {
+    insights.push({
+      type: 'neutral',
+      title: 'Low Confidence Pattern',
+      message: `Your average confidence is ${avgConfidence.toFixed(0)}%. Consider if you're being too conservative or if you're taking on highly uncertain decisions.`
+    });
+  }
+
+  // 4. Recent Streak Analysis
+  const recentDecisions = completed.slice(0, 5);
+  if (recentDecisions.length >= 5) {
+    const recentFailures = recentDecisions.filter(d => d.outcome === 'failure').length;
+    const recentSuccesses = recentDecisions.filter(d => d.outcome === 'success').length;
+    
+    if (recentFailures >= 4) {
+      insights.push({
+        type: 'warning',
+        title: 'Recent Losing Streak',
+        message: `You've had ${recentFailures} failures in your last 5 decisions. Take a step back—are you rushing? Missing key information?`
+      });
+    } else if (recentSuccesses >= 4) {
+      insights.push({
+        type: 'positive',
+        title: 'Strong Recent Performance',
+        message: `You've successfully predicted ${recentSuccesses} of your last 5 decisions. Your calibration is improving!`
+      });
+    }
+  }
+
+  // 5. Hindsight Bias Check (comparing confidence on failures)
+  const lowConfidenceSuccesses = completed.filter(d => d.confidence < 50 && d.outcome === 'success');
+  if (lowConfidenceSuccesses.length >= 2) {
+    insights.push({
+      type: 'neutral',
+      title: 'Underconfident on Wins',
+      message: `You've had ${lowConfidenceSuccesses.length} successes where you were <50% confident. You may be underestimating yourself in certain domains.`
+    });
+  }
+
   return insights;
 };
 
@@ -73,4 +120,64 @@ export const getConfidenceColor = (val: number) => {
   if (val >= 80) return 'bg-green-100 text-green-800 border-green-200';
   if (val >= 50) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
   return 'bg-red-100 text-red-800 border-red-200';
+};
+
+// --- CSV Export ---
+export const exportToCSV = (decisions: Decision[]) => {
+  const headers = [
+    'Title',
+    'Context',
+    'Prediction',
+    'Confidence %',
+    'Assumptions',
+    'Pre-Mortem',
+    'Tags',
+    'Created Date',
+    'Target Date',
+    'Status',
+    'Outcome',
+    'Outcome Notes',
+    'Resolved Date'
+  ];
+
+  const rows = decisions.map(d => [
+    d.title,
+    d.context,
+    d.prediction,
+    d.confidence,
+    d.assumptions,
+    d.preMortem,
+    d.tags.join('; '),
+    formatDate(d.createdAt),
+    formatDate(d.targetDate),
+    d.status,
+    d.outcome || '',
+    d.outcomeNotes || '',
+    d.resolvedAt ? formatDate(d.resolvedAt) : ''
+  ]);
+
+  // Escape CSV fields
+  const escapeCSV = (field: string | number) => {
+    const str = String(field);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const csvContent = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map(row => row.map(escapeCSV).join(','))
+  ].join('\n');
+
+  // Create download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `decision-receipts-${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
