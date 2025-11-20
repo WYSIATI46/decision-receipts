@@ -10,12 +10,13 @@ import {
   AlertCircle,
   CheckCircle2,
   Target,
-  ArrowRight
+  ArrowRight,
+  Download
 } from 'lucide-react';
 import { Decision, DecisionStatus, ViewState, Insight } from './types';
-import { generateInsights, getConfidenceColor, formatDate, daysUntil } from './utils';
+import { generateInsights, getConfidenceColor, formatDate, daysUntil, exportToCSV } from './utils';
 import StatCard from './components/StatCard';
-import { CalibrationChart, OutcomeChart } from './components/Charts';
+import { CalibrationChart, OutcomeChart, TimelineChart } from './components/Charts';
 
 // --- MAIN COMPONENT ---
 
@@ -23,6 +24,14 @@ const App: React.FC = () => {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [view, setView] = useState<ViewState>('dashboard');
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [form, setForm] = useState({
+    title: '',
+    prediction: '',
+    confidence: 50,
+    assumptions: '',
+    preMortem: '',
+    targetDate: '',
+  });
 
   // Load from LocalStorage on mount
   useEffect(() => {
@@ -157,15 +166,6 @@ const App: React.FC = () => {
   };
 
   const renderNewDecision = () => {
-    const [form, setForm] = useState({
-      title: '',
-      prediction: '',
-      confidence: 50,
-      assumptions: '',
-      preMortem: '',
-      targetDate: '',
-    });
-
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       const newDecision: Decision = {
@@ -185,6 +185,15 @@ const App: React.FC = () => {
         resolvedAt: null,
       };
       handleCreate(newDecision);
+      // Reset form
+      setForm({
+        title: '',
+        prediction: '',
+        confidence: 50,
+        assumptions: '',
+        preMortem: '',
+        targetDate: '',
+      });
     };
 
     return (
@@ -374,9 +383,19 @@ const App: React.FC = () => {
   const renderAnalytics = () => {
     return (
       <div className="space-y-8">
-         <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Calibration Analysis</h2>
-            <p className="text-slate-500 mt-1">Are you as good as you think you are?</p>
+         <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Calibration Analysis</h2>
+              <p className="text-slate-500 mt-1">Are you as good as you think you are?</p>
+            </div>
+            <button 
+              onClick={() => exportToCSV(decisions)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-all"
+              disabled={decisions.length === 0}
+            >
+              <Download size={18} />
+              Export CSV
+            </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -393,6 +412,14 @@ const App: React.FC = () => {
              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-6">Outcome Distribution</h3>
              <OutcomeChart decisions={decisions} />
           </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-6">Decision Timeline & Calibration Trend</h3>
+          <TimelineChart decisions={decisions} />
+          <p className="text-xs text-slate-400 mt-4 text-center">
+            Track how your prediction accuracy evolves over time. Rising trend = improving calibration.
+          </p>
         </div>
 
         <div className="bg-blue-900 text-white p-8 rounded-xl shadow-lg flex flex-col md:flex-row items-center justify-between">
