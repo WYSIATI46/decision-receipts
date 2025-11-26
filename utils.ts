@@ -181,3 +181,87 @@ export const exportToCSV = (decisions: Decision[]) => {
   link.click();
   document.body.removeChild(link);
 };
+
+// --- Calibration Metrics ---
+
+/**
+ * Calculate Brier Score - a measure of prediction accuracy
+ * Lower is better (0 = perfect, 1 = worst possible)
+ * Formula: mean((prediction - outcome)^2) where outcome is 0 or 1
+ */
+export const calculateBrierScore = (decisions: Decision[]): number | null => {
+  const completed = decisions.filter(d => d.status === 'completed' && d.outcome);
+  if (completed.length === 0) return null;
+
+  const scores = completed.map(d => {
+    const prediction = d.confidence / 100; // Convert to 0-1
+    const outcome = d.outcome === 'success' ? 1 : 0;
+    return Math.pow(prediction - outcome, 2);
+  });
+
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+};
+
+/**
+ * Calculate calibration error - how far predictions deviate from reality
+ * Returns percentage points of average deviation
+ */
+export const calculateCalibrationError = (decisions: Decision[]): number | null => {
+  const completed = decisions.filter(d => d.status === 'completed' && d.outcome);
+  if (completed.length < 3) return null;
+
+  // Bucket decisions by confidence ranges
+  const buckets = Array.from({ length: 10 }, (_, i) => {
+    const min = i * 10;
+    const max = (i + 1) * 10;
+    const items = completed.filter(d => d.confidence >= min && d.confidence < max);
+    if (items.length === 0) return null;
+
+    const avgConfidence = items.reduce((sum, d) => sum + d.confidence, 0) / items.length;
+    const successRate = (items.filter(d => d.outcome === 'success').length / items.length) * 100;
+    
+    return Math.abs(avgConfidence - successRate);
+  }).filter(error => error !== null) as number[];
+
+  if (buckets.length === 0) return null;
+  
+  return buckets.reduce((sum, error) => sum + error, 0) / buckets.length;
+};
+
+/**
+ * Determine if user is overconfident, underconfident, or well-calibrated
+ */
+export const getCalibrationStatus = (decisions: Decision[]): {
+  status: 'overconfident' | 'underconfident' | 'well-calibrated' | 'insufficient-data';
+  message: string;
+} => {
+  const completed = decisions.filter(d => d.status === 'completed' && d.outcome);
+  
+  if (completed.length < 5) {
+    return {
+      status: 'insufficient-data',
+      message: 'Need at least 5 completed decisions to assess calibration.'
+    };
+  }
+
+  const avgConfidence = completed.reduce((sum, d) => sum + d.confidence, 0) / completed.length;
+  const successRate = (completed.filter(d => d.outcome === 'success').length / completed.length) * 100;
+  const diff = avgConfidence - successRate;
+
+  if (Math.abs(diff) < 5) {
+    return {
+      status: 'well-calibrated',
+      message: `Your confidence (${avgConfidence.toFixed(0)}%) closely matches your actual success rate (${successRate.toFixed(0)}%).`
+    };
+  } else if (diff > 5) {
+    return {
+      status: 'overconfident',
+      message: `You're ${diff.toFixed(0)}% overconfident. Your predictions are more optimistic than reality.`
+    };
+  } else {
+    return {
+      status: 'underconfident',
+      message: `You're ${Math.abs(diff).toFixed(0)}% underconfident. You're succeeding more than you expect.`
+    };
+  }
+};
