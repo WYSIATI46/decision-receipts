@@ -24,11 +24,12 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, color = 
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center">
           {title}
           {tooltip && (
-            <Info
-              size={14}
-              className="ml-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 cursor-help transition-colors"
-              title={tooltip}
-            />
+            <span title={tooltip} className="inline-flex">
+              <Info
+                size={14}
+                className="ml-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 cursor-help transition-colors"
+              />
+            </span>
           )}
         </p>
         <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{value}</h3>
