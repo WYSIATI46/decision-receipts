@@ -139,6 +139,19 @@ const App: React.FC = () => {
             <p className="text-slate-500 dark:text-slate-400 mt-1">Track your prediction calibration and decision outcomes.</p>
         </div>
 
+        {/* Hero Explainer Section */}
+        <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+            Track Your Calibration
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+            Research shows most executives are 20-30% overconfident in their predictions.
+            This tool measures whether your confidence levels match reality by tracking your
+            decisions, predictions, and outcomes over time. Build better judgment through
+            systematic feedback.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard 
             title="Active Decisions" 
