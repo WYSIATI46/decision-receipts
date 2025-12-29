@@ -165,32 +165,88 @@ const App: React.FC = () => {
 
         {/* Insights Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400"/> 
-                    Cognitive Insights
-                  </h3>
-                  <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full font-medium">Beta</span>
+          {decisions.length === 0 ? (
+            /* Empty State - 3-Step Onboarding */
+            <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3 text-center">
+                Start Tracking Your Calibration
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-8 text-center max-w-2xl mx-auto">
+                Build better judgment by tracking how well your confidence matches reality.
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                {/* Step 1 */}
+                <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-3xl mb-3">📝</div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    1. Record a Decision
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Log what you're deciding and set your confidence level (50-99%)
+                  </p>
                 </div>
-                
-                <div className="space-y-4">
-                  {insights.length > 0 ? insights.map((insight, idx) => (
-                    <div key={idx} className={`p-4 rounded-lg border-l-4 ${
-                      insight.type === 'positive' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 dark:border-emerald-400' :
-                      insight.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-500 dark:border-amber-400' :
-                      'bg-slate-50 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500'
-                    }`}>
-                      <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{insight.title}</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{insight.message}</p>
-                    </div>
-                  )) : (
-                     <p className="text-slate-500 dark:text-slate-400 text-sm italic">Log more decisions to generate behavioral insights.</p>
-                  )}
+
+                {/* Step 2 */}
+                <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-3xl mb-3">🎯</div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    2. Make Your Prediction
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Specify what outcome you expect and when you'll know the result
+                  </p>
                 </div>
-             </div>
-          </div>
+
+                {/* Step 3 */}
+                <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-3xl mb-3">📊</div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    3. Track Your Accuracy
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Update outcomes and see if you're overconfident, underconfident, or well-calibrated
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <button
+                  onClick={() => setView('new')}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Add Your First Decision
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="lg:col-span-2">
+               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400"/>
+                      Cognitive Insights
+                    </h3>
+                    <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full font-medium">Beta</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {insights.length > 0 ? insights.map((insight, idx) => (
+                      <div key={idx} className={`p-4 rounded-lg border-l-4 ${
+                        insight.type === 'positive' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 dark:border-emerald-400' :
+                        insight.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-500 dark:border-amber-400' :
+                        'bg-slate-50 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500'
+                      }`}>
+                        <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{insight.title}</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{insight.message}</p>
+                      </div>
+                    )) : (
+                       <p className="text-slate-500 dark:text-slate-400 text-sm italic">Log more decisions to generate behavioral insights.</p>
+                    )}
+                  </div>
+               </div>
+            </div>
+          )}
 
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 h-full">
