@@ -153,26 +153,29 @@ const App: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard 
-            title="Active Decisions" 
-            value={activeCount} 
+          <StatCard
+            title="Active Decisions"
+            value={activeCount}
             icon={<Target size={20} />}
             color="blue"
             trend="Pending outcomes"
+            tooltip="Decisions awaiting outcomes"
           />
-          <StatCard 
-            title="Decision History" 
-            value={completedCount} 
+          <StatCard
+            title="Decision History"
+            value={completedCount}
             icon={<History size={20} />}
             color="purple"
             trend="Completed receipts"
+            tooltip="Total completed decisions"
           />
-          <StatCard 
-            title="Prediction Accuracy" 
-            value={`${successRate}%`} 
+          <StatCard
+            title="Prediction Accuracy"
+            value={`${successRate}%`}
             icon={<TrendingUp size={20} />}
             color="green"
             trend="Overall success rate"
+            tooltip="Percentage of correct predictions"
           />
         </div>
 
