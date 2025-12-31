@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  List, 
-  History, 
-  BarChart2, 
-  BrainCircuit, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  LayoutDashboard,
+  PlusCircle,
+  List,
+  History,
+  BarChart2,
+  BrainCircuit,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
@@ -13,13 +13,17 @@ import {
   ArrowRight,
   Download,
   Moon,
-  Sun
+  Sun,
+  X,
+  Tag
 } from 'lucide-react';
 import { Decision, DecisionStatus, ViewState, Insight } from './types';
-import { generateInsights, getConfidenceColor, formatDate, daysUntil, exportToCSV } from './utils';
+import { getConfidenceColor, formatDate, daysUntil, exportToCSV } from './utils';
 import StatCard from './components/StatCard';
 import { CalibrationChart, OutcomeChart, TimelineChart } from './components/Charts';
+import { InsightsPanel } from './components/InsightsPanel';
 import { useTheme } from './contexts/ThemeContext';
+import { getAllTags } from './utils/CalibrationEngine';
 
 // --- MAIN COMPONENT ---
 
@@ -36,7 +40,12 @@ const App: React.FC = () => {
     assumptions: '',
     preMortem: '',
     targetDate: '',
+    tags: [] as string[],
   });
+  const [tagInput, setTagInput] = useState('');
+
+  // Get all existing tags for suggestions
+  const existingTags = useMemo(() => getAllTags(decisions), [decisions]);
 
   // Load from LocalStorage on mount
   useEffect(() => {
@@ -49,7 +58,6 @@ const App: React.FC = () => {
   // Save to LocalStorage on change
   useEffect(() => {
     localStorage.setItem('decision_receipts_data', JSON.stringify(decisions));
-    setInsights(generateInsights(decisions));
   }, [decisions]);
 
   const handleCreate = (newDecision: Decision) => {
@@ -74,7 +82,9 @@ const App: React.FC = () => {
       assumptions: decision.assumptions,
       preMortem: decision.preMortem,
       targetDate: new Date(decision.targetDate).toISOString().split('T')[0],
+      tags: decision.tags || [],
     });
+    setTagInput('');
   };
 
   const handleUpdate = (updatedData: Partial<Decision>) => {
@@ -106,7 +116,9 @@ const App: React.FC = () => {
       assumptions: '',
       preMortem: '',
       targetDate: '',
+      tags: [],
     });
+    setTagInput('');
   };
 
   // --- SUB-VIEWS ---
@@ -169,26 +181,13 @@ const App: React.FC = () => {
              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400"/> 
-                    Cognitive Insights
+                    <BrainCircuit size={20} className="text-blue-600 dark:text-blue-400"/>
+                    Calibration Insights
                   </h3>
-                  <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full font-medium">Beta</span>
+                  <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full font-medium">Research-Backed</span>
                 </div>
-                
-                <div className="space-y-4">
-                  {insights.length > 0 ? insights.map((insight, idx) => (
-                    <div key={idx} className={`p-4 rounded-lg border-l-4 ${
-                      insight.type === 'positive' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 dark:border-emerald-400' :
-                      insight.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-500 dark:border-amber-400' :
-                      'bg-slate-50 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500'
-                    }`}>
-                      <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{insight.title}</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{insight.message}</p>
-                    </div>
-                  )) : (
-                     <p className="text-slate-500 dark:text-slate-400 text-sm italic">Log more decisions to generate behavioral insights.</p>
-                  )}
-                </div>
+
+                <InsightsPanel decisions={decisions} />
              </div>
           </div>
 
@@ -219,7 +218,7 @@ const App: React.FC = () => {
     
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       if (isEditMode) {
         // Update existing decision
         handleUpdate({
@@ -229,6 +228,7 @@ const App: React.FC = () => {
           assumptions: form.assumptions,
           preMortem: form.preMortem,
           targetDate: new Date(form.targetDate).getTime(),
+          tags: form.tags,
         });
       } else {
         // Create new decision
@@ -240,7 +240,7 @@ const App: React.FC = () => {
           confidence: form.confidence,
           assumptions: form.assumptions,
           preMortem: form.preMortem,
-          tags: [],
+          tags: form.tags,
           createdAt: Date.now(),
           targetDate: new Date(form.targetDate).getTime(),
           status: 'active',
@@ -257,9 +257,40 @@ const App: React.FC = () => {
           assumptions: '',
           preMortem: '',
           targetDate: '',
+          tags: [],
         });
+        setTagInput('');
       }
     };
+
+    // Tag management functions
+    const addTag = (tag: string) => {
+      const trimmedTag = tag.trim().toLowerCase();
+      if (trimmedTag && !form.tags.includes(trimmedTag)) {
+        setForm({ ...form, tags: [...form.tags, trimmedTag] });
+      }
+      setTagInput('');
+    };
+
+    const removeTag = (tagToRemove: string) => {
+      setForm({ ...form, tags: form.tags.filter(t => t !== tagToRemove) });
+    };
+
+    const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addTag(tagInput);
+      } else if (e.key === 'Backspace' && !tagInput && form.tags.length > 0) {
+        removeTag(form.tags[form.tags.length - 1]);
+      }
+    };
+
+    // Filter suggestions based on input
+    const tagSuggestions = tagInput.trim()
+      ? existingTags.filter(
+          t => t.toLowerCase().includes(tagInput.toLowerCase()) && !form.tags.includes(t)
+        ).slice(0, 5)
+      : [];
 
     return (
       <div className="max-w-3xl mx-auto">
@@ -334,13 +365,70 @@ const App: React.FC = () => {
             <label className="block text-sm font-medium text-amber-900 dark:text-amber-400 mb-1 flex items-center gap-2">
               <AlertCircle size={16}/> Pre-Mortem
             </label>
-            <textarea 
+            <textarea
               rows={2}
               className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-amber-200 dark:border-amber-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
               placeholder="Imagine it's 6 months later and this decision failed. Why did it happen?"
               value={form.preMortem}
               onChange={e => setForm({...form, preMortem: e.target.value})}
             />
+          </div>
+
+          {/* Tags Input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
+              <Tag size={16} className="text-purple-600 dark:text-purple-400" />
+              Tags (for domain tracking)
+            </label>
+            <div className="relative">
+              <div className="flex flex-wrap gap-2 p-2 min-h-[42px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+                {form.tags.map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-medium rounded"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="hover:text-purple-900 dark:hover:text-purple-200"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  className="flex-1 min-w-[120px] px-2 py-1 bg-transparent text-slate-900 dark:text-white outline-none text-sm"
+                  placeholder={form.tags.length === 0 ? "e.g., hiring, product, market" : "Add another tag..."}
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={() => {
+                    if (tagInput.trim()) addTag(tagInput);
+                  }}
+                />
+              </div>
+
+              {/* Tag Suggestions Dropdown */}
+              {tagSuggestions.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg">
+                  {tagSuggestions.map(suggestion => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => addTag(suggestion)}
+                      className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Press Enter or comma to add. Track performance by domain.
+            </p>
           </div>
 
           <div>
@@ -402,7 +490,21 @@ const App: React.FC = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">{d.title}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Created {formatDate(d.createdAt)}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Created {formatDate(d.createdAt)}</p>
+                      {d.tags && d.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {d.tags.map(tag => (
+                            <span
+                              key={tag}
+                              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getConfidenceColor(d.confidence)}`}>
                     {d.confidence}% Confident
