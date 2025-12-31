@@ -4,6 +4,7 @@ package-lock.json
 
 # Build output
 dist/
+decision-receipts-standalone.html
 
 # Environment files
 .env
