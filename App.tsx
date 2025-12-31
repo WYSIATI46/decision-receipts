@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  List, 
-  History, 
-  BarChart2, 
-  BrainCircuit, 
+import {
+  LayoutDashboard,
+  PlusCircle,
+  List,
+  History,
+  BarChart2,
+  BrainCircuit,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
@@ -13,13 +13,16 @@ import {
   ArrowRight,
   Download,
   Moon,
-  Sun
+  Sun,
+  X
 } from 'lucide-react';
 import { Decision, DecisionStatus, ViewState, Insight } from './types';
 import { generateInsights, getConfidenceColor, formatDate, daysUntil, exportToCSV } from './utils';
 import StatCard from './components/StatCard';
 import { CalibrationChart, OutcomeChart, TimelineChart } from './components/Charts';
 import { useTheme } from './contexts/ThemeContext';
+import { CalibrationEngine } from './utils/CalibrationEngine';
+import { InsightsPanel } from './components/InsightsPanel';
 
 // --- MAIN COMPONENT ---
 
@@ -36,7 +39,9 @@ const App: React.FC = () => {
     assumptions: '',
     preMortem: '',
     targetDate: '',
+    tags: [] as string[],
   });
+  const [tagInput, setTagInput] = useState('');
 
   // Load from LocalStorage on mount
   useEffect(() => {
@@ -74,6 +79,7 @@ const App: React.FC = () => {
       assumptions: decision.assumptions,
       preMortem: decision.preMortem,
       targetDate: new Date(decision.targetDate).toISOString().split('T')[0],
+      tags: decision.tags || [],
     });
   };
 
@@ -94,7 +100,9 @@ const App: React.FC = () => {
       assumptions: '',
       preMortem: '',
       targetDate: '',
+      tags: [],
     });
+    setTagInput('');
   };
 
   const handleCancelEdit = () => {
@@ -106,7 +114,9 @@ const App: React.FC = () => {
       assumptions: '',
       preMortem: '',
       targetDate: '',
+      tags: [],
     });
+    setTagInput('');
   };
 
   // --- SUB-VIEWS ---
@@ -216,10 +226,30 @@ const App: React.FC = () => {
 
   const renderNewDecision = () => {
     const isEditMode = !!editingDecision;
-    
+    const availableTags = CalibrationEngine.getAvailableTags(decisions);
+
+    const handleAddTag = (tag: string) => {
+      const trimmedTag = tag.trim();
+      if (trimmedTag && !form.tags.includes(trimmedTag)) {
+        setForm({ ...form, tags: [...form.tags, trimmedTag] });
+      }
+      setTagInput('');
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+      setForm({ ...form, tags: form.tags.filter(t => t !== tagToRemove) });
+    };
+
+    const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && tagInput.trim()) {
+        e.preventDefault();
+        handleAddTag(tagInput);
+      }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       if (isEditMode) {
         // Update existing decision
         handleUpdate({
@@ -229,6 +259,7 @@ const App: React.FC = () => {
           assumptions: form.assumptions,
           preMortem: form.preMortem,
           targetDate: new Date(form.targetDate).getTime(),
+          tags: form.tags,
         });
       } else {
         // Create new decision
@@ -240,7 +271,7 @@ const App: React.FC = () => {
           confidence: form.confidence,
           assumptions: form.assumptions,
           preMortem: form.preMortem,
-          tags: [],
+          tags: form.tags,
           createdAt: Date.now(),
           targetDate: new Date(form.targetDate).getTime(),
           status: 'active',
@@ -257,7 +288,9 @@ const App: React.FC = () => {
           assumptions: '',
           preMortem: '',
           targetDate: '',
+          tags: [],
         });
+        setTagInput('');
       }
     };
 
@@ -345,13 +378,65 @@ const App: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Review Date</label>
-            <input 
+            <input
               required
-              type="date" 
+              type="date"
               className="px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               value={form.targetDate}
               onChange={e => setForm({...form, targetDate: e.target.value})}
             />
+          </div>
+
+          {/* Tags Input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Tags (optional)
+            </label>
+            <div className="space-y-2">
+              {/* Tag Display */}
+              {form.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Tag Input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Type a tag and press Enter (e.g., work, personal, tech)"
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  list="tag-suggestions"
+                />
+                {availableTags.length > 0 && (
+                  <datalist id="tag-suggestions">
+                    {availableTags.map((tag, idx) => (
+                      <option key={idx} value={tag} />
+                    ))}
+                  </datalist>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Tags help you track calibration by domain (e.g., "work", "personal", "tech")
+              </p>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
@@ -470,14 +555,19 @@ const App: React.FC = () => {
   };
 
   const renderAnalytics = () => {
+    // Calculate calibration metrics
+    const metrics = CalibrationEngine.calculateMetrics(decisions);
+
     return (
       <div className="space-y-8">
          <div className="mb-8 flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Calibration Analysis</h2>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">Are you as good as you think you are?</p>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">
+                Research-backed analysis of your prediction accuracy
+              </p>
             </div>
-            <button 
+            <button
               onClick={() => exportToCSV(decisions)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium shadow-sm transition-all"
               disabled={decisions.length === 0}
@@ -487,30 +577,42 @@ const App: React.FC = () => {
             </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-6">Confidence vs. Reality Curve</h3>
-            <CalibrationChart decisions={decisions} />
-          </div>
+        {/* Insights Panel */}
+        <InsightsPanel metrics={metrics} />
 
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-6">Outcome Distribution</h3>
-             <OutcomeChart decisions={decisions} />
-          </div>
-        </div>
+        {/* Only show charts if we have sufficient data */}
+        {metrics.sampleSizeWarning !== 'insufficient' && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-6">
+                  Confidence vs. Reality Curve
+                </h3>
+                <CalibrationChart metrics={metrics} />
+              </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-6">Decision Timeline & Calibration Trend</h3>
-          <TimelineChart decisions={decisions} />
-          <p className="text-xs text-slate-400 mt-4 text-center">
-            Track how your prediction accuracy evolves over time. Rising trend = improving calibration.
-          </p>
-        </div>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-6">Outcome Distribution</h3>
+                 <OutcomeChart decisions={decisions} />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-6">Decision Timeline & Calibration Trend</h3>
+              <TimelineChart decisions={decisions} />
+              <p className="text-xs text-slate-400 mt-4 text-center">
+                Track how your prediction accuracy evolves over time. Rising trend = improving calibration.
+              </p>
+            </div>
+          </>
+        )}
 
         <div className="bg-blue-900 dark:bg-blue-950 text-white p-8 rounded-xl shadow-lg flex flex-col md:flex-row items-center justify-between">
           <div className="mb-4 md:mb-0">
             <h3 className="text-xl font-bold mb-2">Improve your judgment</h3>
-            <p className="text-blue-200 dark:text-blue-300 max-w-md">Reviewing past decisions is the single most effective way to reduce bias and improve future outcomes.</p>
+            <p className="text-blue-200 dark:text-blue-300 max-w-md">
+              Based on Tetlock's forecasting research, deliberate review of past decisions is proven to reduce cognitive bias.
+            </p>
           </div>
           <button onClick={() => setView('history')} className="bg-white dark:bg-slate-200 text-blue-900 dark:text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-blue-50 dark:hover:bg-slate-300 transition-colors shadow-lg">
             Review Completed Decisions
