@@ -83,18 +83,18 @@ export const CalibrationChart: React.FC<Props> = ({ decisions }) => {
           calibrationStatus.status === 'underconfident' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
           'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600'
         }`}>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-1 ${
+          <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${
             calibrationStatus.status === 'well-calibrated' ? 'text-emerald-700 dark:text-emerald-400' :
             calibrationStatus.status === 'overconfident' ? 'text-amber-700 dark:text-amber-400' :
             calibrationStatus.status === 'underconfident' ? 'text-blue-700 dark:text-blue-400' :
             'text-slate-500 dark:text-slate-400'
-          }">Status</p>
-          <p className="text-xs font-bold ${
+          }`}>Status</p>
+          <p className={`text-xs font-bold ${
             calibrationStatus.status === 'well-calibrated' ? 'text-emerald-900 dark:text-emerald-300' :
             calibrationStatus.status === 'overconfident' ? 'text-amber-900 dark:text-amber-300' :
             calibrationStatus.status === 'underconfident' ? 'text-blue-900 dark:text-blue-300' :
             'text-slate-900 dark:text-white'
-          }">
+          }`}>
             {calibrationStatus.status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
           </p>
         </div>
